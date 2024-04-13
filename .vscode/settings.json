@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "*.S": "m68k",
+    "unordered_map": "cpp"
+  }
+}
