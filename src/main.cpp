@@ -1,9 +1,9 @@
 #include <Arduino.h>
 
-#define sEMG_PIN_A 12
+#define sEMG_PIN_A 13
 #define sEMG_PIN_B 14
-#define sEMG_PIN_C 27
-#define sEMG_PIN_D 26
+#define sEMG_PIN_C 26
+#define sEMG_PIN_D 25
 
 #define LED_PIN 2
 
@@ -11,28 +11,62 @@ uint16_t valueA = 0;
 uint16_t valueB = 0;
 uint16_t valueC = 0;
 uint16_t valueD = 0;
-uint8_t startByte = 0xFF;
-uint8_t stopByte = 0xFE;
+char buffer[128];
+bool sendData = true;
+
 // Time interval for processing the input signal.
 TickType_t sampleTicks = 2 / portTICK_PERIOD_MS;
 TickType_t sampleTicks2 = 1 / portTICK_PERIOD_MS;
+
 void sensorTask(void *);
 void serialTask(void *);
+
+void receiveCb()
+{
+  int bytes = Serial.readBytes(buffer, sizeof(buffer));
+  if (bytes == 0) {
+    return;
+  }
+
+  if (buffer[bytes - 1] == 'R'){
+  digitalWrite(LED_PIN, LOW);
+  ESP.restart();
+  }
+}
 
 void setup()
 {
   Serial.begin(921600);
+  //Serial.flush();
+
+  //Serial.onReceive(receiveCb);
+
+
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
+
   xTaskCreate(sensorTask, "SensorTask", 48000, NULL, configMAX_PRIORITIES - 1, NULL);
-  //xTaskCreate(serialTask, "SerialTask", 48000, NULL, configMAX_PRIORITIES - 1, NULL);
+  xTaskCreate(serialTask, "SerialTask", 48000, NULL, configMAX_PRIORITIES, NULL);
 }
 
 void loop()
 {
-  
-      Serial.printf("S%0u,%0u,%0u,%0uE\n", valueA, valueB, valueC, valueD);
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+  /*
+    TickType_t startTicks = xTaskGetTickCount();
+    if (sendData) {
+    Serial.printf("S%u,%u,%u,%uE\n", valueA, valueB, valueC, valueD);
+    digitalWrite(LED_PIN, HIGH);
+    } else {
+      char ack = Serial.read();
+      if (ack == 'A') {
+       sendData = true;
+      }
+    }
+
+
+    BaseType_t res = xTaskDelayUntil(&startTicks, sampleTicks);
+  */
+  vTaskDelay(60000 / portTICK_PERIOD_MS);
 }
 
 void sensorTask(void *)
@@ -44,17 +78,7 @@ void sensorTask(void *)
     valueB = analogRead(sEMG_PIN_B);
     valueC = analogRead(sEMG_PIN_C);
     valueD = analogRead(sEMG_PIN_D);
-    /*
-        char ack = Serial.read();
-        if (ack == 'A')
-        {
-          vTaskDelay(1 / portTICK_PERIOD_MS);
-          Serial.printf("S%u,%u,%u,%uE", valueA, valueB, valueC, valueD);
-        } else if (ack == 'R') {
-          Serial.printf("FLUSH");
-          Serial.flush();
-        }
-    */
+
     BaseType_t res = xTaskDelayUntil(&startTicks, sampleTicks);
     // digitalWrite(LED_PIN, !res);
   }
@@ -64,16 +88,18 @@ void serialTask(void *)
 {
   for (;;)
   {
-  TickType_t startTicks = xTaskGetTickCount();
-      Serial.printf("S%0u,%0u,%0u,%0uE\n", valueA, valueB, valueC, valueD);
-      //Serial.printf("S%u,%u,%u,%uE\n", valueA, valueB, valueC, valueD);
-    /*char ack = Serial.read();
-    if (ack == 'A')
-    {
-      //Serial.println("S1111,2222,3333,4444E");
-    }*/
-      //vTaskDelay(1 / portTICK_PERIOD_MS);
-    BaseType_t res = xTaskDelayUntil(&startTicks, sampleTicks2);
-    //digitalWrite(LED_PIN, !res);
+    TickType_t startTicks = xTaskGetTickCount();
+    /*
+      char ack = Serial.read();
+       if (ack == 'R') {
+          digitalWrite(LED_PIN, LOW);
+          ESP.restart();
+        }
+    */
+    Serial.printf("S%u,%u,%u,%uE\n", valueA, valueB, valueC, valueD);
+
+    digitalWrite(LED_PIN, HIGH);
+
+    BaseType_t res = xTaskDelayUntil(&startTicks, sampleTicks);
   }
 }
