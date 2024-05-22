@@ -37,9 +37,6 @@ void receiveCb()
 void setup()
 {
   Serial.begin(921600);
-  //Serial.flush();
-
-  //Serial.onReceive(receiveCb);
 
 
   pinMode(LED_PIN, OUTPUT);
@@ -51,21 +48,6 @@ void setup()
 
 void loop()
 {
-  /*
-    TickType_t startTicks = xTaskGetTickCount();
-    if (sendData) {
-    Serial.printf("S%u,%u,%u,%uE\n", valueA, valueB, valueC, valueD);
-    digitalWrite(LED_PIN, HIGH);
-    } else {
-      char ack = Serial.read();
-      if (ack == 'A') {
-       sendData = true;
-      }
-    }
-
-
-    BaseType_t res = xTaskDelayUntil(&startTicks, sampleTicks);
-  */
   vTaskDelay(60000 / portTICK_PERIOD_MS);
 }
 
@@ -80,7 +62,6 @@ void sensorTask(void *)
     valueD = analogRead(sEMG_PIN_D);
 
     BaseType_t res = xTaskDelayUntil(&startTicks, sampleTicks);
-    // digitalWrite(LED_PIN, !res);
   }
 }
 
@@ -89,13 +70,7 @@ void serialTask(void *)
   for (;;)
   {
     TickType_t startTicks = xTaskGetTickCount();
-    /*
-      char ack = Serial.read();
-       if (ack == 'R') {
-          digitalWrite(LED_PIN, LOW);
-          ESP.restart();
-        }
-    */
+
     Serial.printf("S%u,%u,%u,%uE\n", valueA, valueB, valueC, valueD);
 
     digitalWrite(LED_PIN, HIGH);
